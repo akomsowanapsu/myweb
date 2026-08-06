@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Map via IP Geolocation</title>
+    
+    <!-- 1. Include Leaflet.js CSS for Map Styling -->
+    <link rel="stylesheet" href="https://unpkg.com" />
+    
+    <style>
+        /* Give the map container a distinct width and height */
+        #map {
+            height: 450px;
+            width: 100%;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h3>Your Estimated Location (Based on your IP Address)</h3>
+    <!-- The map element container -->
+    <div id="map"></div>
+
+    <!-- 2. Include Leaflet.js JavaScript Library -->
+    <script src="https://unpkg.com"></script>
+
+    <script>
+        // 3. Fetch visitor coordinates using an IP Geolocation API
+        fetch('https://ipapi.co')
+            .then(response => response.json())
+            .then(data => {
+                const lat = data.latitude;
+                const lon = data.longitude;
+                const city = data.city;
+                const country = data.country_name;
+
+                // Validate that coordinates were returned
+                if (lat && lon) {
+                    // 4. Initialize the map centered on visitor coordinates
+                    const map = L.map('map').setView([lat, lon], 12);
+
+                    // 5. Add OpenStreetMap map tiles
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(map);
+
+                    // 6. Add a marker pointing to the location
+                    L.marker([lat, lon]).addTo(map)
+                        .bindPopup(`<b>Approximate Location:</b><br>${city}, ${country}`)
+                        .openPopup();
+                } else {
+                    console.error("Location data unavailable for this IP address.");
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching IP geolocation:", error);
+            });
+    </script>
+
+</body>
+</html>
