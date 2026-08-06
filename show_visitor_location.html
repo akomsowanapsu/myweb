@@ -1,63 +1,128 @@
-<!DOCTYPE html>
+html<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visitor Map via IP Geolocation</title>
+    <title>Visitor Location Map</title>
     
-    <!-- 1. Include Leaflet.js CSS for Map Styling -->
-    <link rel="stylesheet" href="https://unpkg.com" />
-    
+    <!-- Include Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+
     <style>
-        /* Give the map container a distinct width and height */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        /* The map element must have a defined height */
         #map {
             height: 450px;
             width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            border: 2px solid #ccc;
             border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #status {
+            font-weight: bold;
+            color: #555;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
-    <h3>Your Estimated Location (Based on your IP Address)</h3>
-    <!-- The map element container -->
+    <h1>Find My Location on the Map</h1>
+    <button onclick="findMe()">Show My Location</button>
+    <p id="status"></p>
+    
+    <!-- The map container element -->
     <div id="map"></div>
 
-    <!-- 2. Include Leaflet.js JavaScript Library -->
-    <script src="https://unpkg.com"></script>
+    <!-- Include Leaflet JavaScript library -->
+    <script src="https://unpkg.com" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
 
     <script>
-        // 3. Fetch visitor coordinates using an IP Geolocation API
-        fetch('https://ipapi.co')
-            .then(response => response.json())
-            .then(data => {
-                const lat = data.latitude;
-                const lon = data.longitude;
-                const city = data.city;
-                const country = data.country_name;
+        // Initialize map with a placeholder worldwide view
+        let map = L.map('map').setView([0, 0], 2);
 
-                // Validate that coordinates were returned
-                if (lat && lon) {
-                    // 4. Initialize the map centered on visitor coordinates
-                    const map = L.map('map').setView([lat, lon], 12);
+        // Load and display OpenStreetMap tile layer
+        L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a>'
+        }).addTo(map);
 
-                    // 5. Add OpenStreetMap map tiles
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    }).addTo(map);
+        let marker;
 
-                    // 6. Add a marker pointing to the location
-                    L.marker([lat, lon]).addTo(map)
-                        .bindPopup(`<b>Approximate Location:</b><br>${city}, ${country}`)
-                        .openPopup();
-                } else {
-                    console.error("Location data unavailable for this IP address.");
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching IP geolocation:", error);
-            });
+        function findMe() {
+            const statusText = document.getElementById('status');
+            statusText.textContent = "Locating...";
+
+            // Check if browser supports Geolocation API
+            if (!navigator.geolocation) {
+                statusText.textContent = "Geolocation is not supported by your browser.";
+                return;
+            }
+
+            // Request permission and fetch current position
+            navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
+        }
+
+        function successCallback(position) {
+            const statusText = document.getElementById('status');
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            statusText.textContent = `Success! Latitude: ${lat.toFixed(4)}, Longitude: ${lng.toFixed(4)}`;
+
+            // Update map view to focus directly on visitor's location
+            map.setView([lat, lng], 15);
+
+            // Remove existing marker if user clicks the button again
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            // Drop a pin marker at the coordinates and bind an information popup
+            marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup("<b>You are here!</b>").openPopup();
+        }
+
+        function errorCallback(error) {
+            const statusText = document.getElementById('status');
+            
+            // Handle different failure types
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    statusText.textContent = "Permission denied. Please allow location access.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    statusText.textContent = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    statusText.textContent = "The request to get user location timed out.";
+                    break;
+                default:
+                    statusText.textContent = "An unknown error occurred.";
+                    break;
+            }
+        }
     </script>
-
 </body>
 </html>
